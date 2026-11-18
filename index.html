@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Tablero de comunicación con pictogramas y voces para hablar de acampada, pensado para una persona con discapacidad motora que no habla.">
+<title>Comunicador de acampada</title>
+<link rel="icon" type="image/webp" href="webp/tienda-de-campana.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..900&display=swap">
+<style>
+:root {
+  --ground: #eaeefa;
+  --card: #ffffff;
+  --ink: #121212;
+  --muted: #383838;
+  --soft: #4a4a4a;
+  --blue: #2e55c8;
+  --blue-deep: #1c3378;
+  --blue-line: #7e97e1;
+  --green: #1bb166;
+  --green-deep: #106a3d;
+  --green-ink: #03120a;
+  --red: #ed6154;
+  --red-ink: #ae2012;
+  --ring: #12214f;
+  --radius-action: 0.625rem;
+  --radius-card: 1rem;
+  --font: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --bar-h: 92px;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: light;
+}
+html { scrollbar-width: none; -webkit-text-size-adjust: 100%; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--card);
+}
+button, a { font-family: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 4px solid var(--ring); outline-offset: 3px; }
+picture { display: contents; }
+.ic { width: 1em; height: 1em; display: block; fill: currentColor; flex-shrink: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Top: phrase + actions */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--card);
+  box-shadow: 0 4px 0 rgba(18, 33, 79, 0.08);
+  padding: 12px var(--gutter-r) 12px var(--gutter-l);
+}
+.top-in { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.phrase {
+  min-width: 0; min-height: 76px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 6px 8px; border: 3px dashed var(--blue-line); border-radius: var(--radius-card); background: var(--card);
+}
+.phrase-empty { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: var(--soft); line-height: 1.25; }
+.phrase-empty .ic { font-size: 28px; color: var(--blue); }
+.chip {
+  width: 56px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: var(--card); border: 3px solid; border-radius: 8px; overflow: hidden;
+}
+.chip img { width: 36px; height: 36px; object-fit: contain; }
+.chip span { font-size: 8px; font-weight: 800; text-transform: uppercase; max-width: 50px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip.is-speaking { box-shadow: 0 0 0 3px var(--ring); }
+.actions { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; gap: 10px; }
+.btn {
+  height: 64px; border-radius: var(--radius-card); border: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 20px; font-weight: 900; letter-spacing: 0.04em; text-decoration: none; text-transform: uppercase;
+  transition: transform 80ms ease;
+}
+.btn:active { transform: translateY(3px); }
+.btn .ic { font-size: 34px; }
+.btn-speak { background: var(--green); color: var(--green-ink); box-shadow: 0 5px 0 var(--green-deep); }
+.btn-home { background: var(--card); color: var(--blue-deep); border: 3px solid var(--blue); box-shadow: 0 5px 0 var(--blue-deep); }
+.btn-erase { background: var(--card); color: var(--red-ink); border: 3px solid var(--red); box-shadow: 0 5px 0 var(--red); }
+
+/* Main */
+main {
+  padding: 24px var(--gutter-r) 32px var(--gutter-l);
+  max-width: calc(1100px + 32px); margin: 0 auto;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.brand { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+.brand h1 { margin: 0; font-size: clamp(34px, 9vw, 56px); font-weight: 900; line-height: 1; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.brand p { margin: 0; font-size: 17px; font-weight: 700; color: var(--muted); }
+.section-title { margin: 0; font-size: 20px; font-weight: 900; color: var(--blue-deep); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+
+.grid-quick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.grid-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.grid-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.grid-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.grid-voices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* Tablet */
+@media (min-width: 34em) {
+  .grid-items { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-quick { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .grid-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .grid-voices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .tile { grid-column: span 2; }
+  .tile:nth-child(4) { grid-column: 2 / span 2; }
+  .tile:last-child:nth-child(odd) { grid-column: 4 / span 2; }
+}
+/* Desktop */
+@media (min-width: 56em) {
+  .top-in { flex-direction: row; align-items: stretch; }
+  .phrase { flex: 1; }
+  .actions { width: 380px; flex-shrink: 0; align-self: center; }
+  .grid-items { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; }
+  .grid-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .tile, .tile:nth-child(4), .tile:last-child:nth-child(odd) { grid-column: auto; }
+  .card img { max-width: 140px; }
+  .pill h1 { font-size: 30px; }
+}
+
+.card {
+  min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 12px 6px 10px; background: var(--card); border: 6px solid; border-radius: var(--radius-card);
+  box-shadow: 0 5px 0 rgba(18, 33, 79, 0.16); transition: transform 80ms ease, box-shadow 120ms ease;
+}
+.card:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(18, 33, 79, 0.16); }
+.card img { width: 100%; max-width: 120px; height: auto; aspect-ratio: 1; object-fit: contain; }
+.card span { font-size: 17px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1.1; text-align: center; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; }
+.card.is-on { box-shadow: 0 0 0 5px var(--ring); }
+.card.small { padding: 8px 4px; border-width: 5px; }
+.card.small img { max-width: 72px; }
+.card.small span { font-size: 13px; }
+
+.tile {
+  min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 16px 8px; border-radius: var(--radius-card); text-decoration: none; transition: transform 80ms ease;
+}
+.tile:active { transform: translateY(3px); }
+.tile .disc { width: 96px; height: 96px; padding: 8px; background: var(--card); border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+.tile .disc img { width: 100%; height: 100%; object-fit: contain; }
+.tile span { font-size: 18px; font-weight: 900; letter-spacing: 0.03em; text-transform: uppercase; text-align: center; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; }
+
+.head { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.pill { display: inline-flex; align-items: center; gap: 10px; padding: 5px 20px 5px 5px; border-radius: 9999px; max-width: 100%; }
+.pill .disc { width: 48px; height: 48px; padding: 4px; background: var(--card); border-radius: 9999px; flex-shrink: 0; }
+.pill .disc img { width: 100%; height: 100%; object-fit: contain; }
+.pill h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.1; overflow-wrap: anywhere; }
+.head p { margin: 0; font-size: 17px; font-weight: 600; color: var(--muted); }
+
+.navchip {
+  min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 4px; border: 3px solid; border-radius: var(--radius-action); background: var(--card); text-decoration: none;
+}
+.navchip img { width: 40px; height: 40px; object-fit: contain; background: var(--card); border-radius: 9999px; }
+.navchip span { hyphens: auto; -webkit-hyphens: auto; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.01em; max-width: 100%; overflow-wrap: anywhere; text-align: center; line-height: 1.1; }
+
+.voice {
+  min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 72px;
+  background: var(--card); border: 3px solid #c9d3f0; border-radius: var(--radius-card); text-align: left;
+  box-shadow: 0 4px 0 rgba(18, 33, 79, 0.12); transition: transform 80ms ease;
+}
+.voice:active { transform: translateY(3px); }
+.voice .face { width: 44px; height: 44px; flex-shrink: 0; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #121212; }
+.voice b { display: block; font-size: 18px; font-weight: 900; }
+.voice small { display: block; font-size: 13px; font-weight: 700; color: var(--soft); }
+.voice[aria-pressed="true"] { border-color: var(--ring); box-shadow: 0 0 0 3px var(--ring); }
+.voice[aria-pressed="true"] small::after { content: " · elegida"; color: var(--green-deep); }
+.link-guide {
+  align-self: center; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px;
+  background: var(--card); border: 2px solid #a8b9eb; border-radius: var(--radius-action);
+  color: var(--blue-deep); font-weight: 800; text-decoration: none;
+}
+.link-guide .ic { font-size: 22px; }
+
+/* Bottom: always-available answers */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  padding: 10px var(--gutter-r) calc(10px + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
+  background: var(--card); box-shadow: 0 -4px 0 rgba(18, 33, 79, 0.08);
+}
+.bar-in { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.answer {
+  min-width: 0; height: calc(var(--bar-h) - 20px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 5px solid; border-radius: var(--radius-card); font-size: 18px; font-weight: 900; letter-spacing: 0.03em; color: var(--ink); line-height: 1;
+  transition: transform 80ms ease;
+}
+.answer:active { transform: translateY(3px); }
+.answer img { width: 38px; height: 38px; object-fit: contain; }
+.answer.is-on { box-shadow: 0 0 0 4px var(--ring); }
+@media (min-width: 56em) {
+  .answer { flex-direction: row; gap: 12px; font-size: 22px; }
+  .answer img { width: 48px; height: 48px; }
+}
+
+/* Guide */
+.guide-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.guide-grid { display: flex; flex-direction: column; gap: 20px; }
+@media (min-width: 48em) { .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+.panel { background: var(--card); border-radius: var(--radius-card); padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 2px 0 rgba(18, 33, 79, 0.08); min-width: 0; }
+.panel h2 { margin: 0; font-size: 22px; font-weight: 900; color: var(--blue-deep); text-wrap: balance; }
+.panel p, .panel li { margin: 0; font-size: 16px; line-height: 1.5; color: #242424; overflow-wrap: anywhere; }
+.panel ol, .panel ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+.code { display: flex; align-items: center; gap: 14px; }
+.code .swatch { width: 64px; height: 64px; flex-shrink: 0; padding: 5px; background: var(--card); border: 5px solid; border-radius: 12px; }
+.code .swatch img { width: 100%; height: 100%; object-fit: contain; }
+.code strong { display: block; font-size: 17px; font-weight: 800; }
+.code span { font-size: 15px; color: var(--soft); }
+.tag { display: inline-block; align-self: flex-start; padding: 2px 10px; background: #f39c12; border-radius: 9999px; font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink); }
+.note { padding: 12px 14px; background: #fef5e7; border-radius: 12px; display: flex; flex-direction: column; gap: 6px; }
+.panel a { color: #2544a2; }
+
+/* Footer: authorship, above the fixed answer bar */
+.foot {
+  max-width: calc(1100px + 32px); margin: 0 auto;
+  padding: 0 var(--gutter-r) calc(var(--bar-h) + 36px + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
+}
+.foot p {
+  margin: 0; padding: 16px 18px; border-top: 2px solid #c9d3f0;
+  font-size: 14px; line-height: 1.5; color: var(--muted); text-align: center; overflow-wrap: anywhere;
+}
+.foot strong { color: var(--ink); font-weight: 800; }
+
+@media (prefers-reduced-motion: reduce) {
+  body, .btn, .card, .tile, .answer, .voice { transition: none; }
+  .btn:active, .card:active, .tile:active, .answer:active, .voice:active { transform: none; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></symbol>
+  <symbol id="i-speak" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></symbol>
+  <symbol id="i-erase" viewBox="0 0 24 24"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></symbol>
+  <symbol id="i-touch" viewBox="0 0 24 24"><path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="top-in">
+    <div class="phrase" id="phrase" aria-live="polite" aria-label="Mi frase"></div>
+    <div class="actions">
+      <a class="btn btn-home" href="#inicio" aria-label="Volver al inicio"><svg class="ic"><use href="#i-home"/></svg></a>
+      <button class="btn btn-speak" id="speak" type="button"><svg class="ic"><use href="#i-speak"/></svg>Hablar</button>
+      <button class="btn btn-erase" id="erase" type="button" aria-label="Borrar el último dibujo"><svg class="ic"><use href="#i-erase"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main id="view"></main>
+
+<footer class="foot">
+  <p>Creado por <strong>Paloma Ocaña Gámiz</strong><br>Asignatura 46402 · Técnicas de Comunicación en los Procesos Educativos<br>Universidad de Las Palmas de Gran Canaria</p>
+</footer>
+
+<nav class="bar" aria-label="Respuestas rápidas">
+  <div class="bar-in" id="bar"></div>
+</nav>
+
+<noscript><p style="padding: 16px">Este tablero necesita JavaScript activado para funcionar.</p></noscript>
+
+<script>
+const DATA = {"quick":[["Hola","Hola","soc","hola"],["Adiós","Adiós","soc","adios"],["Por favor","Por favor","soc","por-favor"],["Gracias","Gracias","soc","gracias"],["Quiero","Quiero","acc","quiero"],["No quiero","No quiero","acc","no-quiero"]],"rail":[["SÍ","Sí","#1bb166","#e4fbf0","si"],["NO","No","#ed6154","#fce5e3","no"],["AYUDA","Ayúdame, por favor","#f39c12","#fef5e7","ayuda"]],"cats":[{"id":"acciones","label":"Acciones","title":"Acciones","hint":"¿Qué quieres hacer? Toca un dibujo para oírlo","color":"#1bb166","tint":"#e4fbf0","ink":"#121212","deep":"#106a3d","img":"jugar","items":[["Acampar","Acampar","acc","acampar"],["Aventura","Aventura","acc","aventura"],["Ayudar","Ayudar","acc","ayudar"],["Beber","Beber","acc","beber"],["Comer","Comer","acc","comer"],["Dormir","Dormir","acc","dormir"],["Explorar","Explorar","acc","explorar"],["Jugar","Jugar","acc","jugar"],["Mirar","Mirar","acc","mirar"],["Pasear por el campo","Pasear por el campo","acc","pasear-por-el-campo"]]},{"id":"material","label":"Material","title":"Material de acampada","hint":"¿Qué necesitas llevar? Toca un dibujo","color":"#f39c12","tint":"#fef5e7","ink":"#121212","deep":"#976008","img":"tienda-de-campana","items":[["Brújula","Brújula","nom","brujula"],["Cantimplora","Cantimplora","nom","cantimplora"],["Esterilla","Esterilla","nom","esterilla"],["Excursionista","Excursionista","per","excursionista"],["Linterna","Linterna","nom","linterna"],["Mapa","Mapa","nom","mapa"],["Mochila","Mochila","nom","mochila"],["Prismáticos","Prismáticos","nom","prismaticos"],["Saco de dormir","Saco de dormir","nom","saco-de-dormir"],["Tienda de campaña","Tienda de campaña","nom","tienda-de-campana"]]},{"id":"naturaleza","label":"Naturaleza","title":"Naturaleza y entorno","hint":"¿Qué ves o adónde vamos? Toca un dibujo","color":"#3498db","tint":"#e9f4fb","ink":"#121212","deep":"#195d8b","img":"arbol","items":[["Árbol","Árbol","nom","arbol"],["Acampada","Acampada","nom","acampada"],["Amanecer","Amanecer","nom","amanecer"],["Atardecer","Atardecer","nom","atardecer"],["Bosque","Bosque","nom","bosque"],["Camino","Camino","nom","camino"],["Camping","Camping","nom","camping"],["Montaña","Montaña","nom","montana"],["Noche","Noche","nom","noche"],["Río","Río","nom","rio"]]},{"id":"ropa","label":"Ropa e higiene","title":"Ropa e higiene personal","hint":"Vestirme y cuidarme. Toca un dibujo","color":"#a546ff","tint":"#f5ebff","ink":"#ffffff","deep":"#6400c2","img":"chubasquero","items":[["Abrigo","Abrigo","nom","abrigo"],["Botas de montaña","Botas de montaña","nom","botas-de-montana"],["Calcetines","Calcetines","nom","calcetines"],["Cepillo de dientes","Cepillo de dientes","nom","cepillo-de-dientes"],["Chándal","Chándal","nom","chandal"],["Chubasquero","Chubasquero","nom","chubasquero"],["Gorra","Gorra","nom","gorra"],["Pijama","Pijama","nom","pijama"],["Protector solar","Protector solar","nom","protector-solar"],["Repelente de mosquitos","Repelente de mosquitos","nom","repelente-de-mosquitos"]]},{"id":"comida","label":"Comida","title":"Alimentación y utensilios","hint":"¿Qué quieres comer o beber? Toca un dibujo","color":"#ed6154","tint":"#fce5e3","ink":"#121212","deep":"#ae2012","img":"bocadillo","items":[["Agua","Agua","nom","agua"],["Bocadillo","Bocadillo","nom","bocadillo"],["Cubiertos","Cubiertos","nom","cubiertos"],["Fiambrera","Fiambrera","nom","fiambrera"],["Fruta","Fruta","nom","fruta"],["Frutos secos","Frutos secos","nom","frutos-secos"],["Galletas","Galletas","nom","galletas"],["Hoguera","Hoguera","nom","hoguera"],["Hornillo de gas","Hornillo de gas","nom","hornillo-de-gas"],["Zumo","Zumo","nom","zumo"]]}],"sprite":{"dani":{"abrigo":[0.35,0.622],"acampada":[1.322,0.709],"acampar":[2.381,0.572],"acciones":[3.304,0.826],"adios":[4.48,0.674],"agua":[5.503,0.512],"amanecer":[6.365,0.688],"arbol":[7.403,0.498],"atardecer":[8.251,0.798],"aventura":[9.399,0.735],"ayudame-por-favor":[10.485,1.371],"ayudar":[12.206,0.607],"beber":[13.162,0.532],"bocadillo":[14.044,0.797],"bosque":[15.19,0.59],"botas-de-montana":[16.13,1.2],"brujula":[17.68,0.651],"calcetines":[18.682,0.879],"camino":[19.91,0.593],"camping":[20.853,0.533],"cantimplora":[21.736,0.89],"cepillo-de-dientes":[22.976,1.216],"chandal":[24.542,0.565],"chubasquero":[25.457,0.738],"comer":[26.545,0.5],"comida":[27.395,0.585],"cubiertos":[28.33,0.799],"dormir":[29.479,0.659],"esterilla":[30.487,0.814],"excursionista":[31.651,1.187],"explorar":[33.188,0.747],"fiambrera":[34.285,0.823],"fruta":[35.458,0.62],"frutos-secos":[36.427,0.969],"galletas":[37.746,0.753],"gorra":[38.849,0.57],"gracias":[39.769,0.729],"hoguera":[40.848,0.538],"hola-soy-dani":[41.736,1.175],"hola":[43.261,0.421],"hornillo-de-gas":[44.033,0.977],"jugar":[45.36,0.447],"linterna":[46.157,0.858],"mapa":[47.364,0.48],"material":[48.194,0.751],"mirar":[49.295,0.546],"mochila":[50.191,0.684],"montana":[51.225,0.725],"naturaleza":[52.301,0.888],"no-quiero":[53.538,0.683],"no":[54.572,0.383],"noche":[55.305,0.533],"pasear-por-el-campo":[56.188,1.208],"pijama":[57.745,0.532],"por-favor":[58.628,0.591],"prismaticos":[59.569,0.864],"protector-solar":[60.783,1.012],"quiero":[62.145,0.459],"repelente-de-mosquitos":[62.953,1.519],"rio":[64.822,0.511],"ropa-e-higiene":[65.682,0.893],"saco-de-dormir":[66.925,1.014],"si":[68.289,0.436],"tienda-de-campana":[69.076,1.069],"zumo":[70.494,0.543]},"elena":{"abrigo":[0.35,0.668],"acampada":[1.368,0.721],"acampar":[2.439,0.666],"acciones":[3.454,0.685],"adios":[4.489,0.585],"agua":[5.424,0.495],"amanecer":[6.269,0.72],"arbol":[7.339,0.539],"atardecer":[8.228,0.769],"aventura":[9.346,0.709],"ayudame-por-favor":[10.406,1.325],"ayudar":[12.08,0.658],"beber":[13.088,0.551],"bocadillo":[13.989,0.809],"bosque":[15.148,0.607],"botas-de-montana":[16.104,1.161],"brujula":[17.615,0.67],"calcetines":[18.635,0.839],"camino":[19.824,0.603],"camping":[20.777,0.605],"cantimplora":[21.731,0.88],"cepillo-de-dientes":[22.961,1.125],"chandal":[24.437,0.587],"chubasquero":[25.373,0.803],"comer":[26.527,0.517],"comida":[27.394,0.567],"cubiertos":[28.311,0.772],"dormir":[29.433,0.603],"esterilla":[30.386,0.747],"excursionista":[31.483,1.014],"explorar":[32.847,0.728],"fiambrera":[33.925,0.71],"fruta":[34.985,0.596],"frutos-secos":[35.931,0.902],"galletas":[37.183,0.71],"gorra":[38.243,0.528],"gracias":[39.121,0.681],"hoguera":[40.152,0.542],"hola-soy-elena":[41.044,1.043],"hola":[42.437,0.455],"hornillo-de-gas":[43.242,1.017],"jugar":[44.609,0.553],"linterna":[45.512,0.682],"mapa":[46.544,0.569],"material":[47.463,0.731],"mirar":[48.544,0.582],"mochila":[49.476,0.703],"montana":[50.529,0.76],"naturaleza":[51.639,0.809],"no-quiero":[52.798,0.702],"no":[53.85,0.441],"noche":[54.641,0.603],"pasear-por-el-campo":[55.594,1.282],"pijama":[57.226,0.574],"por-favor":[58.15,0.708],"prismaticos":[59.208,0.882],"protector-solar":[60.44,1.061],"quiero":[61.851,0.57],"repelente-de-mosquitos":[62.77,1.413],"rio":[64.533,0.527],"ropa-e-higiene":[65.411,1.165],"saco-de-dormir":[66.925,1.035],"si":[68.31,0.458],"tienda-de-campana":[69.118,1.137],"zumo":[70.605,0.532]},"lucia":{"abrigo":[0.35,0.688],"acampada":[1.388,0.779],"acampar":[2.517,0.664],"acciones":[3.531,0.859],"adios":[4.74,0.701],"agua":[5.79,0.525],"amanecer":[6.665,0.775],"arbol":[7.789,0.557],"atardecer":[8.696,0.834],"aventura":[9.88,0.751],"ayudame-por-favor":[10.981,1.485],"ayudar":[12.816,0.657],"beber":[13.823,0.526],"bocadillo":[14.699,0.776],"bosque":[15.824,0.629],"botas-de-montana":[16.804,1.129],"brujula":[18.282,0.658],"calcetines":[19.29,0.975],"camino":[20.615,0.605],"camping":[21.571,0.533],"cantimplora":[22.453,0.882],"cepillo-de-dientes":[23.685,1.236],"chandal":[25.27,0.595],"chubasquero":[26.215,0.857],"comer":[27.421,0.5],"comida":[28.271,0.58],"cubiertos":[29.202,0.88],"dormir":[30.432,0.577],"esterilla":[31.359,0.773],"excursionista":[32.482,1.042],"explorar":[33.874,0.724],"fiambrera":[34.947,0.77],"fruta":[36.068,0.643],"frutos-secos":[37.061,1.225],"galletas":[38.636,0.824],"gorra":[39.81,0.527],"gracias":[40.687,0.72],"hoguera":[41.757,0.57],"hola-soy-lucia":[42.677,1.239],"hola":[44.266,0.429],"hornillo-de-gas":[45.045,0.958],"jugar":[46.353,0.482],"linterna":[47.185,0.77],"mapa":[48.305,0.551],"material":[49.206,0.734],"mirar":[50.289,0.466],"mochila":[51.105,0.658],"montana":[52.113,0.743],"naturaleza":[53.206,0.883],"no-quiero":[54.439,0.637],"no":[55.426,0.439],"noche":[56.214,0.559],"pasear-por-el-campo":[57.124,1.173],"pijama":[58.646,0.669],"por-favor":[59.666,0.662],"prismaticos":[60.678,1.018],"protector-solar":[62.046,1.18],"quiero":[63.576,0.456],"repelente-de-mosquitos":[64.382,1.469],"rio":[66.201,0.492],"ropa-e-higiene":[67.042,1.011],"saco-de-dormir":[68.404,1.047],"si":[69.801,0.478],"tienda-de-campana":[70.629,1.089],"zumo":[72.068,0.522]},"pablo":{"abrigo":[0.35,0.517],"acampada":[1.217,0.63],"acampar":[2.198,0.638],"acciones":[3.186,0.655],"adios":[4.191,0.591],"agua":[5.132,0.603],"amanecer":[6.085,0.681],"arbol":[7.116,0.469],"atardecer":[7.935,0.757],"aventura":[9.042,0.678],"ayudame-por-favor":[10.07,0.983],"ayudar":[11.404,0.509],"beber":[12.263,0.405],"bocadillo":[13.018,0.605],"bosque":[13.973,0.503],"botas-de-montana":[14.826,0.894],"brujula":[16.07,0.624],"calcetines":[17.044,0.836],"camino":[18.23,0.511],"camping":[19.09,0.505],"cantimplora":[19.946,0.697],"cepillo-de-dientes":[20.993,1.133],"chandal":[22.476,0.56],"chubasquero":[23.386,0.74],"comer":[24.475,0.454],"comida":[25.279,0.484],"cubiertos":[26.113,0.774],"dormir":[27.237,0.633],"esterilla":[28.22,0.659],"excursionista":[29.228,1.025],"explorar":[30.603,0.716],"fiambrera":[31.67,0.687],"fruta":[32.707,0.52],"frutos-secos":[33.577,1.047],"galletas":[34.974,0.632],"gorra":[35.957,0.41],"gracias":[36.716,0.622],"hoguera":[37.688,0.699],"hola-soy-pablo":[38.738,0.996],"hola":[40.084,0.436],"hornillo-de-gas":[40.87,1.047],"jugar":[42.267,0.631],"linterna":[43.248,0.585],"mapa":[44.183,0.633],"material":[45.166,0.751],"mirar":[46.267,0.47],"mochila":[47.087,0.603],"montana":[48.04,0.637],"naturaleza":[49.027,0.832],"no-quiero":[50.209,0.58],"no":[51.139,0.664],"noche":[52.152,0.475],"pasear-por-el-campo":[52.977,1.095],"pijama":[54.422,0.542],"por-favor":[55.314,0.642],"prismaticos":[56.305,0.862],"protector-solar":[57.517,0.979],"quiero":[58.846,0.438],"repelente-de-mosquitos":[59.634,1.465],"rio":[61.449,0.625],"ropa-e-higiene":[62.424,1.141],"saco-de-dormir":[63.916,0.916],"si":[65.182,0.586],"tienda-de-campana":[66.118,0.995],"zumo":[67.462,0.424]}},"voices":[{"id":"lucia","name":"Lucía","kind":"Mujer","accent":"España","color":"#f8a5c8","credit":"voz femenina del corpus Sharvard (Universidad de Edimburgo), licencia CC BY 3.0."},{"id":"elena","name":"Elena","kind":"Mujer","accent":"España","color":"#d6b3ff","credit":"voz «ef_dora» del modelo libre Kokoro (hexgrad), licencia Apache 2.0."},{"id":"pablo","name":"Pablo","kind":"Hombre","accent":"España","color":"#a8b9eb","credit":"voz «davefx», de dominio público (CC0)."},{"id":"dani","name":"Dani","kind":"Hombre","accent":"España","color":"#95efc2","credit":"voz masculina del corpus Sharvard (Universidad de Edimburgo), licencia CC BY 3.0."}]};
+const SPC = { per: '#f2c12e', acc: '#1bb166', des: '#2e55c8', nom: '#f39c12', soc: '#e85d9a', mis: '#9e9e9e' };
+const KEY_VOICE = 'comunicador-voz';
+const KEY_PHRASE = 'comunicador-frase';
+const view = document.getElementById('view');
+const phraseEl = document.getElementById('phrase');
+
+function slug(t) {
+  return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+function pic(id, lazy) {
+  const p = document.createElement('picture');
+  const s = document.createElement('source'); s.type = 'image/avif'; s.srcset = 'avif/' + id + '.avif';
+  const i = document.createElement('img'); i.src = 'webp/' + id + '.webp'; i.alt = ''; i.width = 320; i.height = 320; i.decoding = 'async';
+  if (lazy) i.loading = 'lazy';
+  p.append(s, i);
+  return p;
+}
+
+let voice = 'lucia';
+try { const v = localStorage.getItem(KEY_VOICE); if (v && DATA.voices.some((x) => x.id === v)) voice = v; } catch (e) {}
+let phrase = [];
+try { const s = JSON.parse(localStorage.getItem(KEY_PHRASE) || '[]'); if (Array.isArray(s)) phrase = s.filter((w) => w && w.say && w.img).slice(-6); } catch (e) {}
+
+// One mp3 per voice holds every word; DATA.sprite[voice][slug] = [start, duration] in seconds.
+const AC = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+const buffers = {};
+const loading = {};
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+function getCtx() { if (!actx && AC) actx = new AC(); return actx; }
+function loadVoice(id) {
+  if (buffers[id]) return Promise.resolve(buffers[id]);
+  if (!loading[id]) {
+    loading[id] = fetch('audio/' + id + '.mp3')
+      .then((r) => { if (!r.ok) throw new Error('audio ' + r.status); return r.arrayBuffer(); })
+      .then((ab) => new Promise((res, rej) => getCtx().decodeAudioData(ab, res, rej)))
+      .then((b) => { buffers[id] = b; return b; })
+      .catch((e) => { loading[id] = null; throw e; });
+  }
+  return loading[id];
+}
+let queue = [];
+let speakingIndex = -1;
+let source = null;
+let token = 0;
+function stopAll() {
+  token++;
+  if (source) { source.onended = null; try { source.stop(); } catch (e) {} source = null; }
+  try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+}
+function speakFallback(text, done) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) { setTimeout(done, 300); return; }
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'es-ES';
+    u.onend = () => setTimeout(done, 120); u.onerror = () => setTimeout(done, 120);
+    synth.speak(u);
+  } catch (e) { setTimeout(done, 300); }
+}
+function playNext() {
+  const my = token;
+  const next = queue.shift();
+  if (!next) { speakingIndex = -1; markSpeaking(); return; }
+  speakingIndex = next.index; markSpeaking();
+  const seg = (DATA.sprite[voice] || {})[slug(next.say)];
+  const cont = () => { if (my === token) playNext(); };
+  const c = getCtx();
+  if (!c || !seg) { speakFallback(next.say, cont); return; }
+  if (c.state === 'suspended') c.resume();
+  loadVoice(voice).then((buf) => {
+    if (my !== token) return;
+    const s = c.createBufferSource(); s.buffer = buf; s.connect(c.destination);
+    s.onended = () => setTimeout(cont, 120);
+    source = s;
+    s.start(0, Math.max(0, seg[0] - 0.04), seg[1] + 0.08);
+  }).catch(() => { if (my === token) speakFallback(next.say, cont); });
+}
+function say(text, index) {
+  stopAll();
+  queue = [{ say: text, index: index === undefined ? -1 : index }];
+  playNext();
+}
+function sayAll() {
+  if (!phrase.length) return;
+  stopAll();
+  queue = phrase.map((w, i) => ({ say: w.say, index: i }));
+  playNext();
+}
+function markSpeaking() {
+  phraseEl.querySelectorAll('.chip').forEach((c, i) => c.classList.toggle('is-speaking', i === speakingIndex));
+}
+function warm() {
+  const run = () => loadVoice(voice).catch(() => {});
+  if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 1500 }); else setTimeout(run, 400);
+}
+
+function save() { try { localStorage.setItem(KEY_PHRASE, JSON.stringify(phrase)); } catch (e) {} }
+function renderPhrase() {
+  phraseEl.textContent = '';
+  if (!phrase.length) {
+    const e = el('div', 'phrase-empty');
+    e.innerHTML = '<svg class="ic"><use href="#i-touch"/></svg><span>Toca un dibujo y aparecerá aquí tu frase</span>';
+    phraseEl.appendChild(e); return;
+  }
+  phrase.forEach((w) => {
+    const c = el('div', 'chip'); c.style.borderColor = w.color;
+    c.append(pic(w.img, false), el('span', '', w.label));
+    phraseEl.appendChild(c);
+  });
+}
+function add(w) {
+  phrase = phrase.concat([{ label: w.label, say: w.say, color: w.color, img: w.img }]).slice(-6);
+  save(); renderPhrase();
+  say(w.say, phrase.length - 1);
+}
+document.getElementById('speak').addEventListener('click', sayAll);
+document.getElementById('erase').addEventListener('click', () => { phrase = phrase.slice(0, -1); save(); renderPhrase(); });
+
+function flash(node) {
+  document.querySelectorAll('.is-on').forEach((x) => x.classList.remove('is-on'));
+  node.classList.add('is-on');
+  clearTimeout(flash.t); flash.t = setTimeout(() => node.classList.remove('is-on'), 900);
+}
+function card(item, small) {
+  const [label, text, code, id] = item;
+  const b = el('button', 'card' + (small ? ' small' : '')); b.type = 'button';
+  b.style.borderColor = SPC[code];
+  b.setAttribute('aria-label', text);
+  b.append(pic(id, true), el('span', '', label));
+  b.addEventListener('click', () => { flash(b); add({ label: label, say: text, color: SPC[code], img: id }); });
+  return b;
+}
+
+function renderHome() {
+  const brand = el('div', 'brand');
+  const h = el('h1');
+  const colors = ['#f39c12', '#1bb166', '#2e55c8', '#e85d9a', '#a546ff', '#ed6154', '#3498db', '#168e52', '#f39c12', '#2e55c8', '#e85d9a'];
+  'Comunicador'.split('').forEach((ch, i) => { const s = el('span', '', ch); s.style.color = colors[i % colors.length]; h.appendChild(s); });
+  brand.append(h, el('p', '', 'Mi tablero para hablar de acampada'));
+
+  const q = el('section', 'stack'); q.append(el('h2', 'section-title', 'Para empezar'));
+  const gq = el('div', 'grid-quick'); DATA.quick.forEach((it) => gq.appendChild(card(it, true))); q.appendChild(gq);
+
+  const t = el('section', 'stack'); t.append(el('h2', 'section-title', '¿De qué quieres hablar?'));
+  const gt = el('div', 'grid-tiles');
+  DATA.cats.forEach((c) => {
+    const a = el('a', 'tile'); a.href = '#' + c.id; a.style.background = c.color; a.style.color = c.ink; a.style.boxShadow = '0 5px 0 ' + c.deep;
+    const d = el('span', 'disc'); d.appendChild(pic(c.img, false));
+    a.append(d, el('span', '', c.label)); gt.appendChild(a);
+  });
+  t.appendChild(gt);
+
+  const vs = el('section', 'stack'); vs.append(el('h2', 'section-title', '¿Con qué voz hablo?'));
+  const gv = el('div', 'grid-voices');
+  DATA.voices.forEach((v) => {
+    const b = el('button', 'voice'); b.type = 'button'; b.setAttribute('aria-pressed', String(v.id === voice));
+    const f = el('span', 'face', v.name.charAt(0)); f.style.background = v.color; f.setAttribute('aria-hidden', 'true');
+    const tx = el('span'); tx.append(el('b', '', v.name), el('small', '', v.kind + ' · ' + v.accent));
+    b.append(f, tx);
+    b.addEventListener('click', () => {
+      voice = v.id; try { localStorage.setItem(KEY_VOICE, voice); } catch (e) {}
+      gv.querySelectorAll('.voice').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      say('Hola, soy ' + v.name); warm();
+    });
+    gv.appendChild(b);
+  });
+  vs.appendChild(gv);
+
+  const g = el('a', 'link-guide'); g.href = '#guia'; g.innerHTML = '<svg class="ic"><use href="#i-help"/></svg>Guía para adultos';
+  view.append(brand, q, t, vs, g);
+  warm();
+}
+
+function renderCat(c) {
+  const head = el('div', 'head');
+  const pill = el('div', 'pill'); pill.style.background = c.color; pill.style.color = c.ink;
+  const d = el('span', 'disc'); d.appendChild(pic(c.img, false));
+  pill.append(d, el('h1', '', c.title));
+  head.append(pill, el('p', '', c.hint));
+  const grid = el('div', 'grid-items'); c.items.forEach((it) => grid.appendChild(card(it, false)));
+  const other = el('section', 'stack'); other.append(el('h2', 'section-title', 'Otros temas'));
+  const nav = el('div', 'grid-nav');
+  DATA.cats.forEach((o) => {
+    const a = el('a', 'navchip'); a.href = '#' + o.id; a.style.borderColor = o.color;
+    if (o.id === c.id) { a.style.background = o.color; a.style.color = o.ink; a.setAttribute('aria-current', 'page'); }
+    a.append(pic(o.img, true), el('span', '', o.label)); nav.appendChild(a);
+  });
+  other.appendChild(nav);
+  document.body.style.background = c.tint;
+  view.append(head, grid, other);
+  warm();
+}
+
+function renderGuide() {
+  const head = el('div', 'head');
+  const pill = el('div', 'pill'); pill.style.background = '#2e55c8'; pill.style.color = '#ffffff'; pill.style.paddingLeft = '20px';
+  pill.append(el('h1', '', 'Guía para adultos'));
+  head.append(pill, el('p', '', 'Cómo funciona el comunicador y de dónde salen sus dibujos y sus voces'));
+
+  const codes = el('section', 'panel');
+  codes.append(el('h2', '', 'Código de colores'), el('p', '', 'El borde de cada dibujo dice qué tipo de palabra es, como en los tableros del sistema SPC. Así se aprende a ordenar la frase: quién, qué hace, qué cosa.'));
+  [['per', 'excursionista', 'Amarillo · Personas', 'excursionista'], ['acc', 'comer', 'Verde · Acciones', 'acampar, comer, dormir, quiero'], ['nom', 'mochila', 'Naranja · Cosas y sitios', 'mochila, bosque, bocadillo, gorra'], ['soc', 'hola', 'Rosa · Para relacionarse', 'hola, adiós, por favor, gracias']].forEach(([code, id, name, ex]) => {
+    const r = el('div', 'code'); const sw = el('span', 'swatch'); sw.style.borderColor = SPC[code];
+    sw.appendChild(pic(id, true));
+    const tx = el('div'); tx.append(el('strong', '', name), el('span', '', ex)); r.append(sw, tx); codes.appendChild(r);
+  });
+
+  const how = el('section', 'panel'); how.append(el('h2', '', 'Cómo se usa'));
+  const ol = el('ol');
+  ['Toca un dibujo: se oye su palabra y se añade a la frase de arriba.', 'Toca HABLAR para oír la frase entera. La papelera roja quita el último dibujo.', 'SÍ, NO y AYUDA están siempre abajo, en todas las pantallas.', 'La casa azul vuelve al inicio. Debajo de cada tema hay atajos a los demás.', 'Si en un iPhone o iPad no se oye nada, quita el modo silencio y sube el volumen.'].forEach((x) => ol.appendChild(el('li', '', x)));
+  how.appendChild(ol);
+
+  const motor = el('section', 'panel'); motor.append(el('h2', '', 'Pensado para manos que se mueven con dificultad'));
+  const ul = el('ul');
+  ['Dibujos grandes y separados, para acertar sin precisión.', 'Lo importante siempre en el mismo sitio: la frase arriba, las respuestas abajo.', 'La frase se guarda al cambiar de tema, así se monta «Quiero» + «Linterna».', 'Se adapta al móvil, a la tableta y al ordenador.', 'Cuatro voces para elegir, dos de mujer y dos de hombre.'].forEach((x) => ul.appendChild(el('li', '', x)));
+  const note = el('div', 'note'); note.append(el('span', 'tag', 'PROPUESTA'), el('p', '', 'Barrido con pulsador: los botones se iluminan de uno en uno y la persona pulsa un único botón grande cuando llega al que quiere.'));
+  motor.append(ul, note);
+
+  const total = DATA.quick.length + DATA.rail.length + DATA.cats.reduce((n, c) => n + c.items.length, 0);
+  const cred = el('section', 'panel'); cred.append(el('h2', '', 'Dibujos y voces'));
+  const p1 = el('p'); p1.innerHTML = 'Pictogramas: Sergio Palao. Origen: ARASAAC (<a href="https://arasaac.org" target="_blank" rel="noopener">arasaac.org</a>). Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).';
+  const p2 = el('p', '', 'Voces: grabadas con los programas libres Piper y Kokoro, una grabación por palabra y por voz. Se elige la voz en el inicio.');
+  const vl = el('ul'); DATA.voices.forEach((v) => vl.appendChild(el('li', '', v.name + ' (' + v.kind.toLowerCase() + ', ' + v.accent + '): ' + v.credit)));
+  const p3 = el('p', '', (DATA.cats.length + 2) + ' pantallas enlazadas y ' + total + ' pictogramas, cada uno con su sonido.');
+  cred.append(p1, p2, vl, p3);
+
+  const grid = el('div', 'guide-grid');
+  const c1 = el('div', 'guide-col'); c1.append(codes, cred);
+  const c2 = el('div', 'guide-col'); c2.append(how, motor);
+  grid.append(c1, c2);
+  view.append(head, grid);
+}
+
+function route(fromClick) {
+  const id = (location.hash || '#inicio').slice(1);
+  view.textContent = '';
+  document.body.style.background = '';
+  const c = DATA.cats.find((x) => x.id === id);
+  if (c) { renderCat(c); if (fromClick) say(c.label); document.title = c.title + ' · Comunicador de acampada'; }
+  else if (id === 'guia') { renderGuide(); document.title = 'Guía para adultos · Comunicador de acampada'; }
+  else { renderHome(); document.title = 'Comunicador de acampada'; }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', () => route(true));
+
+const bar = document.getElementById('bar');
+DATA.rail.forEach(([label, text, color, tint, id]) => {
+  const b = el('button', 'answer'); b.type = 'button'; b.style.borderColor = color; b.style.background = tint; b.setAttribute('aria-label', text);
+  b.append(pic(id, false), el('span', '', label));
+  b.addEventListener('click', () => { flash(b); say(text); });
+  bar.appendChild(b);
+});
+renderPhrase();
+route(false);
+</script>
+</body>
+</html>
